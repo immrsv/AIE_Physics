@@ -4,6 +4,7 @@
 
 #include "Plane.h"
 #include "Circle.h"
+#include "Box.h"
 
 using namespace glm;
 
@@ -38,7 +39,7 @@ bool PhysicsApplication::startup()
 
 	camera.radius = 1;
 	
-	MakeScene();
+	MakeScene1();
 
 	return true;
 }
@@ -59,10 +60,31 @@ bool PhysicsApplication::update()
 
 	float dt = 1.0f / 60.0f;
 	
-	if (glfwGetKey(window, GLFW_KEY_P))
-		MakeScene();
+	if (glfwGetKey(window, GLFW_KEY_1))
+		MakeScene1();
+	if (glfwGetKey(window, GLFW_KEY_2))
+		MakeScene2();
+	if (glfwGetKey(window, GLFW_KEY_3))
+		MakeScene3();
+	if (glfwGetKey(window, GLFW_KEY_4))
+		MakeScene4();
+	if (glfwGetKey(window, GLFW_KEY_5))
+		MakeScene5();
+	if (glfwGetKey(window, GLFW_KEY_6))
+		MakeScene6();
 
 	for (auto obj : m_Objects) {
+
+		RigidBody* rb = dynamic_cast<RigidBody*>(obj);
+
+		// Gravity
+		if (rb) rb->applyForce(dt * rb->m_fMass * PhysicsObject::sm_v2Gravity);
+		
+		for (auto candidate : m_Objects) {
+			if (candidate == obj) continue; // Don't check self!
+			obj->checkCollision(candidate);
+		}
+
 		obj->update(dt);
 	}
 
@@ -93,13 +115,8 @@ void PhysicsApplication::draw()
 	//Gizmos::add2DCircle(vec2(0, -4), 1, 32, red);
 	//Gizmos::add2DAABBFilled(vec2(0, 1), vec2(1, 3), red);
 
-	
-	
 	for (auto obj : m_Objects) {
 		obj->draw();
-
-		for (auto candidate : m_Objects)
-			obj->checkCollision(candidate);
 	}
 
 	Gizmos::draw2D(projection * view);
@@ -110,11 +127,53 @@ void PhysicsApplication::draw()
 	day++;
 }
 
-void PhysicsApplication::MakeScene() {
+void PhysicsApplication::MakeScene1() {
+
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
+	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+
 	m_Objects.clear();
 
-	m_Objects.push_back(new Circle(glm::vec2(0, 0), glm::vec2(1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(-8.5, 0), glm::vec2(1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(8.5, 0), glm::vec2(-1, 0)));
+	auto obj = new Box(vec2(0, 0), vec2(0, 0));
+	obj->m_fSpin = 1.0f;
+
+	m_Objects.push_back(obj);
+}
+
+void PhysicsApplication::MakeScene2() {
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
+	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+
+	m_Objects.clear();
+
+
+	m_Objects.push_back(new Plane(glm::vec2(-6.5, 0), glm::vec2(1, 0)));
+	m_Objects.push_back(new Plane(glm::vec2(6.5, 0), glm::vec2(-1, 0)));
+	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
+	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
+
+
+	m_Objects.push_back(new Circle(glm::vec2(0, 0), glm::vec2(0, 0), 1));
+	m_Objects.push_back(new Circle(glm::vec2(-4, -6), glm::vec2(1, 1), 1));
 
 }
+
+void PhysicsApplication::MakeScene3() {
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, -5);
+	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+
+	m_Objects.clear();
+
+	m_Objects.push_back(new Circle(glm::vec2(0, 0), glm::vec2(0, 0), 1));
+	m_Objects.push_back(new Plane(glm::vec2(-8.5, 0), glm::vec2(1, 0)));
+	m_Objects.push_back(new Plane(glm::vec2(8.5, 0), glm::vec2(-1, 0)));
+	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
+	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
+
+	m_Objects.push_back(new Box(vec2(3, 3 ), vec2(0, 0)));
+}
+
+
+void PhysicsApplication::MakeScene4() {}
+void PhysicsApplication::MakeScene5() {}
+void PhysicsApplication::MakeScene6() {}

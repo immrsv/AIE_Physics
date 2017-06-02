@@ -32,7 +32,12 @@ public:
 	std::list<PhysicsObject*> m_Objects;
 
 
-	void MakeScene();
+	void MakeScene1();
+	void MakeScene2();
+	void MakeScene3();
+	void MakeScene4();
+	void MakeScene5();
+	void MakeScene6();
 
 
 };

@@ -13,12 +13,18 @@ public:
 	glm::vec2 m_v2Velocity;
 	
 	float m_fSpin;
+	float m_fMass;
+	float m_fMoment;
+
 
 	//virtual void draw();
-	//virtual void update(float deltaTime);
+	virtual void update(float deltaTime);
 
 	//virtual void collideWithPlane(PhysicsObject*);
 	//virtual void collideWithCircle(PhysicsObject*);
 	//virtual void collideWithBox(PhysicsObject*);
+
+
+	virtual void applyForce(glm::vec2 force, glm::vec2 posn = glm::vec2());
 };
 
