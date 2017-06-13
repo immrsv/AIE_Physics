@@ -18,9 +18,7 @@ public:
 	virtual void collideWithPlane(PhysicsObject*);
 	virtual void collideWithCircle(PhysicsObject*);
 	virtual void collideWithBox(PhysicsObject*);
-
-	virtual void applyForce(glm::vec2 force, glm::vec2 posn = glm::vec2());
-
+	
 private:
 	glm::mat4 m_m4Transform;
 

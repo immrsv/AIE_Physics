@@ -32,7 +32,7 @@ void Circle::collideWithPlane(PhysicsObject* obj) {
 	// Height above plane
 	float dist = glm::dot((m_v2Position - plane->m_v2Position), plane->m_v2Normal);
 
-	float radialV = glm::dot(m_v2Velocity, plane->m_v2Normal);
+	float radialV = glm::dot(m_v2LinearVelocity, plane->m_v2Normal);
 
 
 	if ((dist > 0 && dist < m_fRadius && radialV < 0) || (dist <0 && dist> -m_fRadius && radialV > 0)) {
@@ -49,7 +49,7 @@ void Circle::collideWithCircle(PhysicsObject* obj) {
 	// Height above circle
 	float dist = glm::length(m_v2Position - circle->m_v2Position) - (m_fRadius + circle->m_fRadius);
 
-	float radialV = glm::dot(m_v2Velocity - circle->m_v2Velocity, collisionNormal);
+	float radialV = glm::dot(m_v2LinearVelocity - circle->m_v2LinearVelocity, collisionNormal);
 
 
 	if (dist < 0 && radialV < 0) {
@@ -60,4 +60,5 @@ void Circle::collideWithCircle(PhysicsObject* obj) {
 }
 
 void Circle::collideWithBox(PhysicsObject* obj) {
+	obj->collideWithCircle(this);
 }

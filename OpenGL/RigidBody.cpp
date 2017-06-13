@@ -6,7 +6,7 @@
 #include <iostream>
 
 RigidBody::RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel)
-	: PhysicsObject(objectType, posn), m_v2Velocity(vel), m_fSpin(0), m_fMass(1), m_fMoment(1)
+	: PhysicsObject(objectType, posn), m_v2LinearVelocity(vel), m_fAngularVelocity(0), m_fMass(1), m_fMoment(1)
 {
 }
 
@@ -21,8 +21,8 @@ RigidBody::~RigidBody()
 void RigidBody::update(float deltaTime) {
 
 	// Motion
-	m_v2Position += (m_v2Velocity * deltaTime);
-	m_fRotation += (m_fSpin * deltaTime);
+	m_v2Position += (m_v2LinearVelocity * deltaTime);
+	m_fRotation += (m_fAngularVelocity * deltaTime);
 
 }
 //
@@ -30,13 +30,16 @@ void RigidBody::update(float deltaTime) {
 //void RigidBody::collideWithCircle(PhysicsObject*) {}
 //void RigidBody::collideWithBox(PhysicsObject*) {}
 
+
+
 void RigidBody::applyForce(vec2 force, vec2 posn) {
 
 	glm::vec2 linearAccel = force / m_fMass;
-	float angularAccel;
+	float angularAccel = 0;
 	
 	if (glm::length(posn) != 0)
-		angularAccel = (force.y * posn.x - force.x*posn.y) / m_fMoment;
+		angularAccel = (force.y * posn.x - force.x * posn.y) / m_fMoment;
 
-	m_v2Velocity += linearAccel;
+	m_v2LinearVelocity += linearAccel;
+	m_fAngularVelocity += angularAccel;
 }

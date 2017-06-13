@@ -10,9 +10,9 @@ public:
 	RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel);
 	~RigidBody();
 
-	glm::vec2 m_v2Velocity;
+	glm::vec2 m_v2LinearVelocity;
 	
-	float m_fSpin;
+	float m_fAngularVelocity;
 	float m_fMass;
 	float m_fMoment;
 
@@ -23,8 +23,7 @@ public:
 	//virtual void collideWithPlane(PhysicsObject*);
 	//virtual void collideWithCircle(PhysicsObject*);
 	//virtual void collideWithBox(PhysicsObject*);
-
-
+	
 	virtual void applyForce(glm::vec2 force, glm::vec2 posn = glm::vec2());
 };
 

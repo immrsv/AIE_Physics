@@ -58,7 +58,7 @@ bool PhysicsApplication::update()
 {
 	camera.update(window);
 
-	float dt = 1.0f / 60.0f;
+	float dt = 1.0f / 100.0f;
 	
 	if (glfwGetKey(window, GLFW_KEY_1))
 		MakeScene1();
@@ -135,7 +135,7 @@ void PhysicsApplication::MakeScene1() {
 	m_Objects.clear();
 
 	auto obj = new Box(vec2(0, 0), vec2(0, 0));
-	obj->m_fSpin = 1.0f;
+	obj->m_fAngularVelocity = 1.0f;
 
 	m_Objects.push_back(obj);
 }
@@ -170,7 +170,10 @@ void PhysicsApplication::MakeScene3() {
 	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
 	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
 
-	m_Objects.push_back(new Box(vec2(3, 3 ), vec2(0, 0)));
+	Box* b = new Box(vec2(3, 3), vec2(0, 0));
+	b->m_fRotation = 1.0f;
+
+	m_Objects.push_back(b);
 }
 
 
