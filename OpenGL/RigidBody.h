@@ -19,11 +19,17 @@ public:
 
 	//virtual void draw();
 	virtual void update(float deltaTime);
-
+	
 	//virtual void collideWithPlane(PhysicsObject*);
 	//virtual void collideWithCircle(PhysicsObject*);
 	//virtual void collideWithBox(PhysicsObject*);
 	
+	virtual void resolveCollision(RigidBody* other, vec2 contact, vec2* direction = NULL);
 	virtual void applyForce(glm::vec2 force, glm::vec2 posn = glm::vec2());
+
+
+private:
+	glm::mat4 m_m4Transform;
+
 };
 

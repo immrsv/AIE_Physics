@@ -58,7 +58,7 @@ bool PhysicsApplication::update()
 {
 	camera.update(window);
 
-	float dt = 1.0f / 100.0f;
+	float dt = 1.0f / 300.0f;
 	
 	if (glfwGetKey(window, GLFW_KEY_1))
 		MakeScene1();
@@ -134,10 +134,13 @@ void PhysicsApplication::MakeScene1() {
 
 	m_Objects.clear();
 
-	auto obj = new Box(vec2(0, 0), vec2(0, 0));
+	RigidBody* obj = new Box(vec2(0, 0), vec2(0, 0));
 	obj->m_fAngularVelocity = 1.0f;
 
 	m_Objects.push_back(obj);
+
+	obj = new Circle(vec2(-4, 1), vec2(1, 0), 1);
+	m_Objects.push_front(obj);
 }
 
 void PhysicsApplication::MakeScene2() {
@@ -146,16 +149,13 @@ void PhysicsApplication::MakeScene2() {
 
 	m_Objects.clear();
 
+	RigidBody* obj = new Box(vec2(0, 0), vec2(0, 0));
+	obj->m_fRotation = 1.57f;
 
-	m_Objects.push_back(new Plane(glm::vec2(-6.5, 0), glm::vec2(1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(6.5, 0), glm::vec2(-1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
-	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
+	m_Objects.push_back(obj);
 
-
-	m_Objects.push_back(new Circle(glm::vec2(0, 0), glm::vec2(0, 0), 1));
-	m_Objects.push_back(new Circle(glm::vec2(-4, -6), glm::vec2(1, 1), 1));
-
+	obj = new Circle(vec2(-4, 1), vec2(1, 0), 0.5);
+	m_Objects.push_front(obj);
 }
 
 void PhysicsApplication::MakeScene3() {
@@ -177,6 +177,23 @@ void PhysicsApplication::MakeScene3() {
 }
 
 
-void PhysicsApplication::MakeScene4() {}
+void PhysicsApplication::MakeScene4() {
+
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
+	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+
+	m_Objects.clear();
+
+
+	m_Objects.push_back(new Plane(glm::vec2(-6.5, 0), glm::vec2(1, 0)));
+	m_Objects.push_back(new Plane(glm::vec2(6.5, 0), glm::vec2(-1, 0)));
+	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
+	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
+
+
+	m_Objects.push_back(new Circle(glm::vec2(0, 0), glm::vec2(0, 0), 1));
+	m_Objects.push_back(new Circle(glm::vec2(-4, -6), glm::vec2(1, 1), 1));
+}
+
 void PhysicsApplication::MakeScene5() {}
 void PhysicsApplication::MakeScene6() {}

@@ -20,7 +20,7 @@ Circle::~Circle()
 }
 
 void Circle::draw() {
-	Gizmos::add2DCircle(m_v2Position, 1, 32, glm::vec4(1, 0, 0, 1));
+	Gizmos::add2DCircle(m_v2Position, m_fRadius, 32, glm::vec4(1, 0, 0, 1));
 }
 
 

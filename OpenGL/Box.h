@@ -13,14 +13,11 @@ public:
 	glm::vec2 m_v2Size;
 
 	virtual void draw();
-	virtual void update(float deltaTime);
 
 	virtual void collideWithPlane(PhysicsObject*);
 	virtual void collideWithCircle(PhysicsObject*);
 	virtual void collideWithBox(PhysicsObject*);
 	
-private:
-	glm::mat4 m_m4Transform;
 
 };
 
