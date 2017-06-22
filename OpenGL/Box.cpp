@@ -20,12 +20,12 @@ Box::~Box()
 {
 }
 
-glm::vec4 pointColour(int x, int y) {
-	if (x == -1)
-		if (y == -1) return glm::vec4(1, 0, 0, 0); // -1, -1, BLACK
+glm::vec4 pointColour(float x, float y) {
+	if (x < 0)
+		if (y < 0) return glm::vec4(1, 1, 1, 0); // -1, -1, BLACK
 		else return glm::vec4(1, 1, 0, 1); // -1, 1, YELLOW
 	else
-		if (y == -1) return glm::vec4(1, 0, 1, 1); // 1, -1, 
+		if (y < 0) return glm::vec4(1, 0, 1, 1); // 1, -1, 
 		else return glm::vec4(0, 1, 1, 1); // 1, 1
 
 	return glm::vec4(1, 1, 1, 1);
@@ -131,7 +131,7 @@ void Box::collideWithPlane(PhysicsObject* obj) {
 void Box::collideWithCircle(PhysicsObject* obj) {
 	Circle* circle = dynamic_cast<Circle*>(obj);
 
-	if (!circle) throw "Box::collideWithPlane() :: Invalid Argument: obj is not a Circle";
+	if (!circle) throw "Box::collideWithCircle() :: Invalid Argument: obj is not a Circle";
 
 	glm::mat4 transform = glm::eulerAngleZ(m_fRotation);
 	vec2 localX = glm::vec2(transform * glm::vec4(1, 0, 0, 1)); // Rotated X axis
@@ -211,5 +211,129 @@ void Box::collideWithCircle(PhysicsObject* obj) {
 }
 
 void Box::collideWithBox(PhysicsObject* obj) {
+
+	Box* box = dynamic_cast<Box*>(obj);
+
+	if (!box) throw "Box::collideWithBox() :: Invalid Argument: obj is not a Box";
+
+
+	glm::vec2 boxPos = box->m_v2Position - m_v2Position;
+	{
+		glm::vec2 norm;
+		glm::vec2 contact;
+		float pen = 0;
+		int numContacts = 0;
+
+		bool thatHitThis = checkBoxCorners(box, contact, numContacts, pen, norm);
+		bool thisHitThat = box->checkBoxCorners(this, contact, numContacts, pen, norm);
+		
+		if (thisHitThat)
+			norm = -norm;
+
+		if (pen > 0)
+		{
+			resolveCollision(box, contact / float(numContacts), &norm);
+			float numDynamic = (m_bIsKinematic ? 0 : 1) + (box->m_bIsKinematic ? 0 : 1);
+			//if (numDynamic > 0)
+			//{
+			//	glm::vec2 contactForce = norm * pen / numDynamic;
+			//	if (!m_bIsKinematic)
+			//		m_v2Position -= contactForce;
+
+			//	if (!box->m_bIsKinematic)
+			//		box->m_v2Position += contactForce;
+			//}
+		}
+	}
+}
+
+bool Box::checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& penetration, vec2& edgeNormal) {
+
+	glm::mat4 transform = glm::eulerAngleZ(m_fRotation);
+	vec2 localX = glm::vec2(transform * glm::vec4(1, 0, 0, 0)); // Rotated X axis
+	vec2 localY = glm::vec2(transform * glm::vec4(0, 1, 0, 0)); // Rotated Y axis
+
+	glm::mat4 boxTransform = glm::eulerAngleZ(box->m_fRotation);
+	vec2 boxLocalX = glm::vec2(boxTransform * glm::vec4(1, 0, 0, 0)); // Rotated X axis
+	vec2 boxLocalY = glm::vec2(boxTransform * glm::vec4(0, 1, 0, 0)); // Rotated Y axis
+
+	vec2 min, max;
+
+	int numLocalContacts = 0;
+	vec2 localContact;
+
+	bool first = true;
+	for (float x = -box->m_v2Size.x; x <= box->m_v2Size.x; x += 2*box->m_v2Size.x)
+	{
+		for (float y = -box->m_v2Size.y; y <= box->m_v2Size.y; y += 2 * box->m_v2Size.y)
+		{
+
+			vec2 boxOffset = x*boxLocalX + y*boxLocalY; // position in other rotated-box space
+			glm::vec2 boxCorner = box->m_v2Position + boxOffset; // position in worldspace
+
+			// position in this local box space
+			glm::vec2 localOffset(glm::dot(boxCorner - m_v2Position, localX), glm::dot(boxCorner - m_v2Position, localY)); // position in our box's space
+			
+			if (first || localOffset.x < min.x) min.x = localOffset.x;
+			if (first || localOffset.x > max.x) max.x = localOffset.x;
+			if (first || localOffset.y < min.y) min.y = localOffset.y;
+			if (first || localOffset.y > max.y) max.y = localOffset.y;
+
+
+			if (localOffset.x >= -m_v2Size.x && localOffset.x <= m_v2Size.x && localOffset.y >= -m_v2Size.y && localOffset.y <= m_v2Size.y)
+			{
+				numLocalContacts++;
+				localContact += localOffset;
+			}
+
+			first = false;
+
+		}
+	}
+
+	if (max.x < -m_v2Size.x || min.x >m_v2Size.x || max.y <-m_v2Size.y || min.y > m_v2Size.y)
+		return false;
+
+	if (numLocalContacts == 0)
+		return false;
+
+	bool result = false;
+
+	contact += m_v2Position + (localContact.x*localX + localContact.y*localY) / (float)numLocalContacts;
+	numContacts++;
+
+	float pen0 = m_v2Size.x - min.x; // Right side
+
+	if (pen0 > 0 && (pen0 < penetration || penetration == 0))
+	{
+		edgeNormal = localX;
+		penetration = pen0;
+		result = true;
+	}
+
+	pen0 = m_v2Size.x + max.x; // left side
+	if (pen0 > 0 && (pen0 < penetration || penetration == 0))
+	{
+		edgeNormal = -localX;
+		penetration = pen0;
+		result = true;
+	}
+
+	pen0 = m_v2Size.y - min.y;
+	if (pen0 > 0 && (pen0 < penetration || penetration == 0))
+	{
+		edgeNormal = localY;
+		penetration = pen0;
+		result = true;
+	}
+
+	pen0 = m_v2Size.y + max.y;
+	if (pen0 > 0 && (pen0 < penetration || penetration == 0))
+	{
+		edgeNormal = -localY;
+		penetration = pen0;
+		result = true;
+	}
+	return result;
 }
 

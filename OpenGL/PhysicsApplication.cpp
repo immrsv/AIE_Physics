@@ -54,11 +54,22 @@ void PhysicsApplication::shutdown()
 	glfwTerminate();
 }
 
+float divisor = 60.0f;
+
 bool PhysicsApplication::update()
 {
 	camera.update(window);
 
-	float dt = 1.0f / 300.0f;
+	if (glfwGetKey(window, GLFW_KEY_UP)) {
+		divisor = std::fmaxf(30.0f, divisor * 0.95f);
+		std::cout << "Time Step @ 1.0 / " << divisor << std::endl;
+	}
+	if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+		divisor = std::fminf(1000.0f, divisor * 1.05f);
+		std::cout << "Time Step @ 1.0 / " << divisor << std::endl;
+	}
+
+	float dt = 1.0f / divisor;
 	
 	if (glfwGetKey(window, GLFW_KEY_1))
 		MakeScene1();
@@ -73,18 +84,21 @@ bool PhysicsApplication::update()
 	if (glfwGetKey(window, GLFW_KEY_6))
 		MakeScene6();
 
-	for (auto obj : m_Objects) {
+	for (auto obj:  m_Objects){
 
 		RigidBody* rb = dynamic_cast<RigidBody*>(obj);
 
+
 		// Gravity
 		if (rb) rb->applyForce(dt * rb->m_fMass * PhysicsObject::sm_v2Gravity);
-		
-		for (auto candidate : m_Objects) {
-			if (candidate == obj) continue; // Don't check self!
+
+		// Collision
+		for (auto candidate : m_Objects ){
+			if (candidate == obj) break; // Don't check self!
 			obj->checkCollision(candidate);
 		}
 
+		// Motion
 		obj->update(dt);
 	}
 
@@ -195,5 +209,28 @@ void PhysicsApplication::MakeScene4() {
 	m_Objects.push_back(new Circle(glm::vec2(-4, -6), glm::vec2(1, 1), 1));
 }
 
-void PhysicsApplication::MakeScene5() {}
+void PhysicsApplication::MakeScene5() {
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
+	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+
+	m_Objects.clear();
+
+
+	m_Objects.push_back(new Plane(glm::vec2(-6.5, 0), glm::vec2(1, 0)));
+	m_Objects.push_back(new Plane(glm::vec2(6.5, 0), glm::vec2(-1, 0)));
+	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
+	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
+
+
+	m_Objects.push_back(new Box(glm::vec2(-3, -3), glm::vec2(0, 0), vec2(1, 1)));
+
+
+	RigidBody* obj = new Box(glm::vec2(-6, -6), glm::vec2(1, 1), vec2(0.5, 0.5));
+	obj->m_fRotation = 3.14f / 4.0f;
+
+	m_Objects.push_back(obj);
+
+
+
+}
 void PhysicsApplication::MakeScene6() {}

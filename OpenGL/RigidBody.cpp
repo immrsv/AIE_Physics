@@ -8,7 +8,7 @@
 #include <iostream>
 
 RigidBody::RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel)
-	: PhysicsObject(objectType, posn), m_v2LinearVelocity(vel), m_fAngularVelocity(0), m_fMass(1), m_fMoment(1)
+	: PhysicsObject(objectType, posn), m_v2LinearVelocity(vel), m_fAngularVelocity(0), m_fMass(1), m_fMoment(1), m_bIsKinematic(false)
 {
 }
 
@@ -34,6 +34,8 @@ void RigidBody::update(float deltaTime) {
 //void RigidBody::collideWithCircle(PhysicsObject*) {}
 //void RigidBody::collideWithBox(PhysicsObject*) {}
 
+
+// contact in world coords
 
 void RigidBody::resolveCollision(RigidBody* other, vec2 contact, vec2* direction) {
 
@@ -61,6 +63,8 @@ void RigidBody::resolveCollision(RigidBody* other, vec2 contact, vec2* direction
 }
 
 void RigidBody::applyForce(vec2 force, vec2 posn) {
+
+	//if (m_bIsKinematic) return; // Kinematic (non-reactive) object
 
 	glm::vec2 linearAccel = force / m_fMass;
 	float angularAccel = 0;

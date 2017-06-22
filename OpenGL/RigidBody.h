@@ -15,7 +15,7 @@ public:
 	float m_fAngularVelocity;
 	float m_fMass;
 	float m_fMoment;
-
+	bool m_bIsKinematic;
 
 	//virtual void draw();
 	virtual void update(float deltaTime);

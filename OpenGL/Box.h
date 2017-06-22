@@ -18,6 +18,6 @@ public:
 	virtual void collideWithCircle(PhysicsObject*);
 	virtual void collideWithBox(PhysicsObject*);
 	
-
+	bool checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& penetration, vec2& edgeNormal);
 };
 
