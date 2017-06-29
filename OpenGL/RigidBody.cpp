@@ -7,49 +7,90 @@
 
 #include <iostream>
 
-RigidBody::RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel)
-	: PhysicsObject(objectType, posn), m_v2LinearVelocity(vel), m_fAngularVelocity(0), m_fMass(1), m_fMoment(1), m_bIsKinematic(false)
+
+float RigidBody::sm_fSleepSpeed = 0.00001f; // linear and angular speed
+int RigidBody::sm_iSleepDelay = 30; // Number of physics frames
+
+RigidBody::RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel, bool isAwake)
+	: PhysicsObject(objectType, posn),
+	m_v2LinearVelocity(vel),
+	m_bIsAwake(isAwake),
+	m_fAngularVelocity(0),
+	m_fMass(1),
+	m_fMoment(1),
+	m_bIsKinematic(false),
+	m_bIsRotationDirty(true),
+	m_iSleepCounter(sm_iSleepDelay)
 {
+	if (!m_bIsAwake) {
+		m_v2LinearVelocity = vec2();
+		m_fAngularVelocity = 0.0f;
+	}
 }
 
 RigidBody::~RigidBody()
 {
 }
 
-//void RigidBody::draw() {
-//	Gizmos::add2DCircle(m_v2Position, 1, 32, glm::vec4(1, 0, 0, 1));
-//}
-//
+glm::mat4& RigidBody::getRotation() {
+	if (m_bIsRotationDirty)
+		m_m4Rotation = glm::eulerAngleZ(m_fRotation);
+
+	return m_m4Rotation;
+}
+
+vec2 RigidBody::toWorld(vec2 local) {
+	return m_v2Position + vec2(getRotation() * glm::vec4(local, 0, 1));
+}
+
+
 void RigidBody::update(float deltaTime) {
+
+	if (m_bIsKinematic || !m_bIsAwake) return;
 
 	// Motion
 	m_v2Position += (m_v2LinearVelocity * deltaTime);
 	m_fRotation += (m_fAngularVelocity * deltaTime);
 
+	m_bIsRotationDirty = (m_fAngularVelocity != 0.0f); // Dirty only if angular velocity not zero
 
-	m_m4Transform = glm::eulerAngleZ(m_fRotation);
+	if (glm::length(m_v2LinearVelocity) < sm_fSleepSpeed && m_fAngularVelocity < sm_fSleepSpeed) {
+		if (m_iSleepCounter-- == 0) {
+			m_bIsAwake = false;
+			m_v2LinearVelocity = vec2();
+			m_fAngularVelocity = 0.0f;
+		}
+	}
+	else
+		m_iSleepCounter = sm_iSleepDelay;
 }
-//
-//void RigidBody::collideWithPlane(PhysicsObject*) {}
-//void RigidBody::collideWithCircle(PhysicsObject*) {}
-//void RigidBody::collideWithBox(PhysicsObject*) {}
 
 
-// contact in world coords
+
+/// point of contact in world space
+/// direction of impetus in world space
 
 void RigidBody::resolveCollision(RigidBody* other, vec2 contact, vec2* direction) {
 
+	if (m_bIsAwake || other->m_bIsAwake) {
+		m_bIsAwake = true;
+		other->m_bIsAwake = true;
+	}
+
+	else
+		return; // Neither is awake
+
 	// find the vector between centres, or use provided direction
-	vec2 unitDisp = direction ? *direction : glm::normalize(other->m_v2Position - m_v2Position);
+	vec2 unitDisp = glm::normalize(direction ? *direction : (other->m_v2Position - m_v2Position));
 
 	// get component along axis for each object
-	vec2 unitParallel(-unitDisp.y, unitDisp.x);
+	vec2 unitParallel(unitDisp.y, -unitDisp.x);
 
 	// determine linear and angular velocities
 	float r1 = glm::dot(contact - m_v2Position, unitParallel);
 	float r2 = glm::dot(contact - other->m_v2Position, -unitParallel);
-	float v1 = glm::dot(contact - m_v2Position, unitDisp) + r1 * m_fAngularVelocity;
-	float v2 = glm::dot(contact - other->m_v2Position, -unitDisp) + r2 * other->m_fAngularVelocity;
+	float v1 = glm::dot(m_v2LinearVelocity, unitDisp) + r1 * m_fAngularVelocity;
+	float v2 = glm::dot(other->m_v2LinearVelocity, unitDisp) - r2 * other->m_fAngularVelocity;
 
 	if ( v1 > v2 ) { // they're moving closer
 		float effMass1 = 1.0f / (1.0f / m_fMass + (r1 * r1) / m_fMoment);
@@ -62,9 +103,9 @@ void RigidBody::resolveCollision(RigidBody* other, vec2 contact, vec2* direction
 	}
 }
 
-void RigidBody::applyForce(vec2 force, vec2 posn) {
 
-	//if (m_bIsKinematic) return; // Kinematic (non-reactive) object
+/// posn in local space
+void RigidBody::applyForce(vec2 force, vec2 posn) {
 
 	glm::vec2 linearAccel = force / m_fMass;
 	float angularAccel = 0;

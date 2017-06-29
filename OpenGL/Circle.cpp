@@ -20,7 +20,11 @@ Circle::~Circle()
 }
 
 void Circle::draw() {
-	Gizmos::add2DCircle(m_v2Position, m_fRadius, 32, glm::vec4(1, 0, 0, 1));
+	glm::vec4 color = m_bIsAwake ? glm::vec4(1, 0, 0, 1) : glm::vec4(0.4, 0, 0, 1);
+	Gizmos::add2DCircle(m_v2Position, m_fRadius, 32, color);
+
+	vec2 highlight = toWorld(vec2(0,m_fRadius / 2.0f));
+	Gizmos::add2DCircle(highlight, m_fRadius/5.0f, 32, glm::vec4(0.5, 0.1, 0.5, 1));
 }
 
 
@@ -42,7 +46,8 @@ void Circle::collideWithPlane(PhysicsObject* obj) {
 }
 
 void Circle::collideWithCircle(PhysicsObject* obj) {
-	Circle* circle = (Circle*)obj;
+	Circle* circle = dynamic_cast<Circle*>(obj);
+
 
 	glm::vec2 collisionNormal = glm::normalize(m_v2Position - circle->m_v2Position);
 
@@ -53,6 +58,13 @@ void Circle::collideWithCircle(PhysicsObject* obj) {
 
 
 	if (dist < 0 && radialV < 0) {
+		if (m_bIsAwake || circle->m_bIsAwake) {
+			m_bIsAwake = true;
+			circle->m_bIsAwake = true;
+		}
+		else
+			return; // Neither is awake
+
 		glm::vec2 deltaF = -m_fMass * (radialV * collisionNormal) * (1 + sm_fCoeffRestitution);
 		applyForce(0.5f * deltaF);
 		circle->applyForce(-0.5f * deltaF);

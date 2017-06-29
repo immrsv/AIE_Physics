@@ -32,10 +32,11 @@ glm::vec4 pointColour(float x, float y) {
 }
 
 void Box::draw() {
+	glm::vec4 color = m_bIsAwake ? glm::vec4(1, 0, 0, 1) : glm::vec4(0.4, 0, 0, 1);
 
 	glm::mat4 transform = glm::eulerAngleZ(m_fRotation);
 
-	Gizmos::add2DAABBFilled(m_v2Position, m_v2Size, glm::vec4(1,0,0,1), &transform);
+	Gizmos::add2DAABBFilled(m_v2Position, m_v2Size, color, &transform);
 
 	vec2 localX = glm::vec2(transform * glm::vec4(1, 0, 0, 0)); // Rotated X axis
 	vec2 localY = glm::vec2(transform * glm::vec4(0, 1, 0, 0)); // Rotated Y axis
@@ -233,18 +234,28 @@ void Box::collideWithBox(PhysicsObject* obj) {
 		if (pen > 0)
 		{
 			resolveCollision(box, contact / float(numContacts), &norm);
-			float numDynamic = (m_bIsKinematic ? 0 : 1) + (box->m_bIsKinematic ? 0 : 1);
-			//if (numDynamic > 0)
-			//{
-			//	glm::vec2 contactForce = norm * pen / numDynamic;
-			//	if (!m_bIsKinematic)
-			//		m_v2Position -= contactForce;
+			float numDynamic = 0.0f + (m_bIsKinematic ? 0 : 1) + (box->m_bIsKinematic ? 0 : 1);
+			if (numDynamic > 0)
+			{
+				glm::vec2 contactForce = norm * pen / numDynamic;
+				if (!m_bIsKinematic)
+					m_v2Position -= contactForce;
 
-			//	if (!box->m_bIsKinematic)
-			//		box->m_v2Position += contactForce;
-			//}
+				if (!box->m_bIsKinematic)
+					box->m_v2Position += contactForce;
+			}
 		}
 	}
+}
+
+bool checkEdgePenetration(float checkPenetration, vec2 checkNormal, float &edgePenetration, vec2 &edgeNormal) {
+	if (checkPenetration > 0 && (checkPenetration < edgePenetration || edgePenetration == 0))
+	{
+		edgeNormal = checkNormal;
+		edgePenetration = checkPenetration;
+		return true;
+	}
+	return false;
 }
 
 bool Box::checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& penetration, vec2& edgeNormal) {
@@ -263,33 +274,34 @@ bool Box::checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& pene
 	vec2 localContact;
 
 	bool first = true;
-	for (float x = -box->m_v2Size.x; x <= box->m_v2Size.x; x += 2*box->m_v2Size.x)
+
+	// For each box corner
+	for (float x = -box->m_v2Size.x; x <= box->m_v2Size.x; x += 2 * box->m_v2Size.x)
+	for (float y = -box->m_v2Size.y; y <= box->m_v2Size.y; y += 2 * box->m_v2Size.y)
 	{
-		for (float y = -box->m_v2Size.y; y <= box->m_v2Size.y; y += 2 * box->m_v2Size.y)
-		{
 
-			vec2 boxOffset = x*boxLocalX + y*boxLocalY; // position in other rotated-box space
-			glm::vec2 boxCorner = box->m_v2Position + boxOffset; // position in worldspace
+		vec2 boxOffset = x*boxLocalX + y*boxLocalY; // position in other rotated-box space
+		glm::vec2 boxCorner = box->m_v2Position + boxOffset; // position in worldspace
 
-			// position in this local box space
-			glm::vec2 localOffset(glm::dot(boxCorner - m_v2Position, localX), glm::dot(boxCorner - m_v2Position, localY)); // position in our box's space
+		// position in this local box space
+		glm::vec2 localOffset(glm::dot(boxCorner - m_v2Position, localX), glm::dot(boxCorner - m_v2Position, localY)); // position in our box's space
 			
-			if (first || localOffset.x < min.x) min.x = localOffset.x;
-			if (first || localOffset.x > max.x) max.x = localOffset.x;
-			if (first || localOffset.y < min.y) min.y = localOffset.y;
-			if (first || localOffset.y > max.y) max.y = localOffset.y;
+		if (first || localOffset.x < min.x) min.x = localOffset.x;
+		if (first || localOffset.x > max.x) max.x = localOffset.x;
+		if (first || localOffset.y < min.y) min.y = localOffset.y;
+		if (first || localOffset.y > max.y) max.y = localOffset.y;
 
 
-			if (localOffset.x >= -m_v2Size.x && localOffset.x <= m_v2Size.x && localOffset.y >= -m_v2Size.y && localOffset.y <= m_v2Size.y)
-			{
-				numLocalContacts++;
-				localContact += localOffset;
-			}
-
-			first = false;
-
+		if (localOffset.x >= -m_v2Size.x && localOffset.x <= m_v2Size.x && localOffset.y >= -m_v2Size.y && localOffset.y <= m_v2Size.y)
+		{
+			numLocalContacts++;
+			localContact += localOffset;
 		}
+
+		first = false;
+
 	}
+	
 
 	if (max.x < -m_v2Size.x || min.x >m_v2Size.x || max.y <-m_v2Size.y || min.y > m_v2Size.y)
 		return false;
@@ -297,43 +309,16 @@ bool Box::checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& pene
 	if (numLocalContacts == 0)
 		return false;
 
-	bool result = false;
-
 	contact += m_v2Position + (localContact.x*localX + localContact.y*localY) / (float)numLocalContacts;
 	numContacts++;
 
-	float pen0 = m_v2Size.x - min.x; // Right side
+	bool hasPenetrated = false;
 
-	if (pen0 > 0 && (pen0 < penetration || penetration == 0))
-	{
-		edgeNormal = localX;
-		penetration = pen0;
-		result = true;
-	}
+	hasPenetrated |= checkEdgePenetration(m_v2Size.x - min.x, localX, penetration, edgeNormal); // Right Side
+	hasPenetrated |= checkEdgePenetration(m_v2Size.x + max.x, -localX, penetration, edgeNormal); // Right Side
+	hasPenetrated |= checkEdgePenetration(m_v2Size.y - min.y, localY, penetration, edgeNormal); // Top Side
+	hasPenetrated |= checkEdgePenetration(m_v2Size.y + max.y, -localY, penetration, edgeNormal); // Bottom Side
 
-	pen0 = m_v2Size.x + max.x; // left side
-	if (pen0 > 0 && (pen0 < penetration || penetration == 0))
-	{
-		edgeNormal = -localX;
-		penetration = pen0;
-		result = true;
-	}
-
-	pen0 = m_v2Size.y - min.y;
-	if (pen0 > 0 && (pen0 < penetration || penetration == 0))
-	{
-		edgeNormal = localY;
-		penetration = pen0;
-		result = true;
-	}
-
-	pen0 = m_v2Size.y + max.y;
-	if (pen0 > 0 && (pen0 < penetration || penetration == 0))
-	{
-		edgeNormal = -localY;
-		penetration = pen0;
-		result = true;
-	}
-	return result;
+	return hasPenetrated;
 }
 

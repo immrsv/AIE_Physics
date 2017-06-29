@@ -17,6 +17,8 @@
 class PhysicsApplication : public Application
 {
 public:
+	static PhysicsApplication* sm_pInstance;
+	PhysicsApplication() { sm_pInstance = this; }
 
 	virtual bool startup();
 	virtual void shutdown();

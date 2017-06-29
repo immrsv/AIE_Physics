@@ -5,8 +5,11 @@
 #include "Plane.h"
 #include "Circle.h"
 #include "Box.h"
+#include "Spring.h"
 
 using namespace glm;
+
+PhysicsApplication* PhysicsApplication::sm_pInstance = 0;
 
 bool PhysicsApplication::startup()
 {
@@ -84,7 +87,7 @@ bool PhysicsApplication::update()
 	if (glfwGetKey(window, GLFW_KEY_6))
 		MakeScene6();
 
-	for (auto obj:  m_Objects){
+	for (auto obj : m_Objects){
 
 		RigidBody* rb = dynamic_cast<RigidBody*>(obj);
 
@@ -120,6 +123,9 @@ void PhysicsApplication::draw()
 	vec4 red(1, 0, 0, 1);
 	vec4 white(1);
 	vec4 black(0, 0, 0, 1);
+
+
+
 	for (int i = 0; i < 21; ++i) {
 		Gizmos::add2DLine(vec2(-10 + i, 10), vec2(-10 + i, -10), i == 10 ? orange : white);
 		Gizmos::add2DLine(vec2(10, -10 + i), vec2(-10, -10 + i), i == 10 ? orange : white);
@@ -174,7 +180,7 @@ void PhysicsApplication::MakeScene2() {
 
 void PhysicsApplication::MakeScene3() {
 	PhysicsObject::sm_v2Gravity = glm::vec2(0, -5);
-	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+	PhysicsObject::sm_fCoeffRestitution = 0.5f;
 
 	m_Objects.clear();
 
@@ -204,9 +210,12 @@ void PhysicsApplication::MakeScene4() {
 	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
 	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
 
+	RigidBody* obj;
+	m_Objects.push_back(obj = new Circle(glm::vec2(0, 0), glm::vec2(0, 0), 1));
+	obj->tag = 1;
 
-	m_Objects.push_back(new Circle(glm::vec2(0, 0), glm::vec2(0, 0), 1));
-	m_Objects.push_back(new Circle(glm::vec2(-4, -6), glm::vec2(1, 1), 1));
+	m_Objects.push_back(obj = new Circle(glm::vec2(-4, -6), glm::vec2(1, 1), 1));
+	obj->tag = 2;
 }
 
 void PhysicsApplication::MakeScene5() {
@@ -222,15 +231,27 @@ void PhysicsApplication::MakeScene5() {
 	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
 
 
-	m_Objects.push_back(new Box(glm::vec2(-3, -3), glm::vec2(0, 0), vec2(1, 1)));
+	m_Objects.push_back(new Box(glm::vec2(0, -2), glm::vec2(0, 0), vec2(1, 1)));
 
-
-	RigidBody* obj = new Box(glm::vec2(-6, -6), glm::vec2(1, 1), vec2(0.5, 0.5));
+	RigidBody* obj = new Box(glm::vec2(-4, -2.75), glm::vec2(2, 0), vec2(1,1));
 	obj->m_fRotation = 3.14f / 4.0f;
 
 	m_Objects.push_back(obj);
 
+}
 
+
+void PhysicsApplication::MakeScene6() {
+
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
+	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+
+	m_Objects.clear();
+
+	RigidBody *obj1, *obj2;
+
+	m_Objects.push_back(obj1 = new Circle(vec2(-2, 0.5), vec2(0, 0), 1));
+	m_Objects.push_back(obj2 = new Circle(vec2( 2, 0.5), vec2(0, 0), 1));
+	m_Objects.push_back(new Spring(obj1, vec2(0.5), obj2, vec2(0.5), 3, 1));
 
 }
-void PhysicsApplication::MakeScene6() {}
