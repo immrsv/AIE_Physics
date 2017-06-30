@@ -26,16 +26,33 @@ public:
 
 	float m_fRotation;
 
+	glm::vec4 m_v4Color;
+
+	int tag;
+
+	glm::mat4& getRotation();
+	vec2& getLocalX();
+	vec2& getLocalY();
+
 	PhysicsObjectType m_iObjectType;
 
 	virtual void draw() = 0;
 	virtual void update(float deltaTime) = 0;
 
-	void checkCollision(PhysicsObject* rhs);
+	bool checkCollision(PhysicsObject* rhs);
 
-	virtual void collideWithPlane(PhysicsObject*) = 0;
-	virtual void collideWithCircle(PhysicsObject*) = 0;
-	virtual void collideWithBox(PhysicsObject*) = 0;
+	virtual bool collideWithPlane(PhysicsObject*) = 0;
+	virtual bool collideWithCircle(PhysicsObject*) = 0;
+	virtual bool collideWithBox(PhysicsObject*) = 0;
 
+	virtual bool IsInside(glm::vec2 pt) { return false; }
+
+private:
+	bool m_bIsRotationDirty = true;
+	glm::mat4 cm_m4Rotation;
+	vec2 cm_v2LocalX; // Calculated Member
+	vec2 cm_v2LocalY;
+
+	void updateRotation();
 };
 

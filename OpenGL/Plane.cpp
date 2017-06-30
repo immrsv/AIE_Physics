@@ -28,16 +28,17 @@ void Plane::update(float deltaTime) {
 
 }
 
-void Plane::collideWithPlane(PhysicsObject* obj) {
+bool Plane::collideWithPlane(PhysicsObject* obj) {
 	// Planes don't collide with planes!
+	return false;
 }
 
-void Plane::collideWithCircle(PhysicsObject* obj) {
+bool Plane::collideWithCircle(PhysicsObject* obj) {
 	// Let Circle deal with it
-	obj->collideWithPlane(this);
+	return obj->collideWithPlane(this);
 }
 
-void Plane::collideWithBox(PhysicsObject* obj) {
+bool Plane::collideWithBox(PhysicsObject* obj) {
 	// Let Box deal with it
-	obj->collideWithPlane(this);
+	return obj->collideWithPlane(this);
 }

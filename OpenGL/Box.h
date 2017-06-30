@@ -14,10 +14,12 @@ public:
 
 	virtual void draw();
 
-	virtual void collideWithPlane(PhysicsObject*);
-	virtual void collideWithCircle(PhysicsObject*);
-	virtual void collideWithBox(PhysicsObject*);
+	virtual bool collideWithPlane(PhysicsObject*);
+	virtual bool collideWithCircle(PhysicsObject*);
+	virtual bool collideWithBox(PhysicsObject*);
 	
 	virtual bool checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& penetration, vec2& edgeNormal);
+
+	virtual bool IsInside(glm::vec2 pt);
 };
 

@@ -13,8 +13,10 @@ public:
 	virtual void draw();
 	//virtual void update(float deltaTime);
 
-	virtual void collideWithPlane(PhysicsObject*);
-	virtual void collideWithCircle(PhysicsObject*);
-	virtual void collideWithBox(PhysicsObject*);
+	virtual bool collideWithPlane(PhysicsObject*);
+	virtual bool collideWithCircle(PhysicsObject*);
+	virtual bool collideWithBox(PhysicsObject*);
+
+	virtual bool IsInside(glm::vec2 pt);
 };
 

@@ -20,7 +20,10 @@ Circle::~Circle()
 }
 
 void Circle::draw() {
-	glm::vec4 color = m_bIsAwake ? glm::vec4(1, 0, 0, 1) : glm::vec4(0.4, 0, 0, 1);
+	glm::vec4 color = m_v4Color;
+
+	if (!m_bIsAwake) color *= 0.5f;
+
 	Gizmos::add2DCircle(m_v2Position, m_fRadius, 32, color);
 
 	vec2 highlight = toWorld(vec2(0,m_fRadius / 2.0f));
@@ -29,7 +32,7 @@ void Circle::draw() {
 
 
 
-void Circle::collideWithPlane(PhysicsObject* obj) {
+bool Circle::collideWithPlane(PhysicsObject* obj) {
 
 	Plane* plane = (Plane*)obj;
 
@@ -42,10 +45,12 @@ void Circle::collideWithPlane(PhysicsObject* obj) {
 	if ((dist > 0 && dist < m_fRadius && radialV < 0) || (dist <0 && dist> -m_fRadius && radialV > 0)) {
 		glm::vec2 deltaF = -m_fMass * (radialV * plane->m_v2Normal) * (1 + sm_fCoeffRestitution);
 		applyForce(deltaF);
+		return true;
 	}
+	return false;
 }
 
-void Circle::collideWithCircle(PhysicsObject* obj) {
+bool Circle::collideWithCircle(PhysicsObject* obj) {
 	Circle* circle = dynamic_cast<Circle*>(obj);
 
 
@@ -63,14 +68,25 @@ void Circle::collideWithCircle(PhysicsObject* obj) {
 			circle->m_bIsAwake = true;
 		}
 		else
-			return; // Neither is awake
+			return false; // Neither is awake
 
 		glm::vec2 deltaF = -m_fMass * (radialV * collisionNormal) * (1 + sm_fCoeffRestitution);
 		applyForce(0.5f * deltaF);
 		circle->applyForce(-0.5f * deltaF);
+
+		return true;
 	}
+	return false;
 }
 
-void Circle::collideWithBox(PhysicsObject* obj) {
-	obj->collideWithCircle(this);
+bool Circle::collideWithBox(PhysicsObject* obj) {
+	return obj->collideWithCircle(this);
+}
+
+// pt in world space
+bool Circle::IsInside(glm::vec2 pt)
+{
+	pt -= m_v2Position;
+
+	return glm::length(pt) < m_fRadius;
 }

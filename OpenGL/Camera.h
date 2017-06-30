@@ -13,4 +13,6 @@ public:
 
 	float angle = 0;
 	float radius = 1;
+
+	float getDistance() { return 10 * radius; }
 };

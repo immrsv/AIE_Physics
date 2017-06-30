@@ -19,7 +19,6 @@ public:
 	bool m_bIsKinematic;
 	bool m_bIsAwake;
 
-	glm::mat4& getRotation();
 	glm::vec2  toWorld(vec2 local);
 
 	//virtual void draw();
@@ -33,7 +32,6 @@ public:
 	virtual void applyForce(glm::vec2 force, glm::vec2 posn = glm::vec2());
 
 
-	int tag;
 
 private:
 	bool m_bIsRotationDirty;

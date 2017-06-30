@@ -6,6 +6,7 @@
 #include "RigidBody.h"
 
 #include <iostream>
+#include <limits>
 
 
 float RigidBody::sm_fSleepSpeed = 0.00001f; // linear and angular speed
@@ -19,7 +20,6 @@ RigidBody::RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel
 	m_fMass(1),
 	m_fMoment(1),
 	m_bIsKinematic(false),
-	m_bIsRotationDirty(true),
 	m_iSleepCounter(sm_iSleepDelay)
 {
 	if (!m_bIsAwake) {
@@ -32,12 +32,6 @@ RigidBody::~RigidBody()
 {
 }
 
-glm::mat4& RigidBody::getRotation() {
-	if (m_bIsRotationDirty)
-		m_m4Rotation = glm::eulerAngleZ(m_fRotation);
-
-	return m_m4Rotation;
-}
 
 vec2 RigidBody::toWorld(vec2 local) {
 	return m_v2Position + vec2(getRotation() * glm::vec4(local, 0, 1));
@@ -46,13 +40,19 @@ vec2 RigidBody::toWorld(vec2 local) {
 
 void RigidBody::update(float deltaTime) {
 
-	if (m_bIsKinematic || !m_bIsAwake) return;
+	if (m_bIsKinematic || !m_bIsAwake)
+	{
+		m_v2LinearVelocity = vec2();
+		m_fAngularVelocity = 0.0f;
+
+		return;
+	}
 
 	// Motion
 	m_v2Position += (m_v2LinearVelocity * deltaTime);
 	m_fRotation += (m_fAngularVelocity * deltaTime);
 
-	m_bIsRotationDirty = (m_fAngularVelocity != 0.0f); // Dirty only if angular velocity not zero
+	m_bIsRotationDirty |= (m_fAngularVelocity != 0.0f); // Dirty only if angular velocity not zero
 
 	if (glm::length(m_v2LinearVelocity) < sm_fSleepSpeed && m_fAngularVelocity < sm_fSleepSpeed) {
 		if (m_iSleepCounter-- == 0) {
@@ -93,8 +93,8 @@ void RigidBody::resolveCollision(RigidBody* other, vec2 contact, vec2* direction
 	float v2 = glm::dot(other->m_v2LinearVelocity, unitDisp) - r2 * other->m_fAngularVelocity;
 
 	if ( v1 > v2 ) { // they're moving closer
-		float effMass1 = 1.0f / (1.0f / m_fMass + (r1 * r1) / m_fMoment);
-		float effMass2 = 1.0f / (1.0f / other->m_fMass + (r2 * r2) / other->m_fMoment);
+		float effMass1 = m_bIsKinematic ? 999999 : 1.0f / (1.0f / m_fMass + (r1 * r1) / m_fMoment);
+		float effMass2 = other->m_bIsKinematic ? 999999 : 1.0f / (1.0f / other->m_fMass + (r2 * r2) / other->m_fMoment);
 
 		vec2 force = (1.0f + sm_fCoeffRestitution) * effMass1 * effMass2 / (effMass1 + effMass2) * (v1 - v2) * unitDisp;
 

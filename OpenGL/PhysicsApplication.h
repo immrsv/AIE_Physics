@@ -33,7 +33,7 @@ public:
 
 	std::list<PhysicsObject*> m_Objects;
 
-
+	void resetScene();
 	void MakeScene1();
 	void MakeScene2();
 	void MakeScene3();
@@ -41,5 +41,13 @@ public:
 	void MakeScene5();
 	void MakeScene6();
 
+private:
+	vec2 m_v2MouseStart;
+	vec2 m_v2MouseCurrent;
+	bool m_bIsMouseDown;
 
+	bool m_bShowGrid = true;
+
+	int m_iActiveScene;
+	void advanceScene();
 };

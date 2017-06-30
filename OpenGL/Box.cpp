@@ -32,14 +32,15 @@ glm::vec4 pointColour(float x, float y) {
 }
 
 void Box::draw() {
-	glm::vec4 color = m_bIsAwake ? glm::vec4(1, 0, 0, 1) : glm::vec4(0.4, 0, 0, 1);
+	
+	glm::vec4 color = m_v4Color;
 
-	glm::mat4 transform = glm::eulerAngleZ(m_fRotation);
+	if (!m_bIsAwake) color *= 0.5f;
 
-	Gizmos::add2DAABBFilled(m_v2Position, m_v2Size, color, &transform);
+	Gizmos::add2DAABBFilled(m_v2Position, m_v2Size, color, &getRotation());
 
-	vec2 localX = glm::vec2(transform * glm::vec4(1, 0, 0, 0)); // Rotated X axis
-	vec2 localY = glm::vec2(transform * glm::vec4(0, 1, 0, 0)); // Rotated Y axis
+	vec2 localX = getLocalX(); // Rotated X axis
+	vec2 localY = getLocalY(); // Rotated Y axis
 
 	for (float x = -m_v2Size.x; x <= m_v2Size.x; x += 2 * m_v2Size.x) {
 		for (float y = -m_v2Size.y; y <= m_v2Size.y; y += 2 * m_v2Size.y) {
@@ -54,7 +55,7 @@ void Box::draw() {
 }
 
 
-void Box::collideWithPlane(PhysicsObject* obj) {
+bool Box::collideWithPlane(PhysicsObject* obj) {
 
 	Plane* plane = dynamic_cast<Plane*>(obj);
 
@@ -74,8 +75,6 @@ void Box::collideWithPlane(PhysicsObject* obj) {
 	float comFromPlane = glm::dot(m_v2Position - plane->m_v2Position, plane->m_v2Normal);
 	float penetration = 0;
 	
-	//if (radius < std::fabsf(comFromPlane)) return; // No Contact
-
 	vec2 offset;
 
 	// For each corner
@@ -125,22 +124,24 @@ void Box::collideWithPlane(PhysicsObject* obj) {
 
 		applyForce(accel * effectiveMass, localContact);
 		m_v2Position -= plane->m_v2Normal * penetration;
+		return true;
 	}
+	return false;
 
 }
 
-void Box::collideWithCircle(PhysicsObject* obj) {
+bool Box::collideWithCircle(PhysicsObject* obj) {
 	Circle* circle = dynamic_cast<Circle*>(obj);
 
 	if (!circle) throw "Box::collideWithCircle() :: Invalid Argument: obj is not a Circle";
 
-	glm::mat4 transform = glm::eulerAngleZ(m_fRotation);
-	vec2 localX = glm::vec2(transform * glm::vec4(1, 0, 0, 1)); // Rotated X axis
-	vec2 localY = glm::vec2(transform * glm::vec4(0, 1, 0, 1)); // Rotated Y axis
+	bool hasCollided = false;
+
+	vec2 localX = getLocalX(); // Rotated X axis
+	vec2 localY = getLocalY(); // Rotated Y axis
 
 	glm::vec2 circlePos = circle->m_v2Position - m_v2Position; // Circle position in rotated-Box space
-	float w2 = m_v2Size.x, 
-		  h2 = m_v2Size.y;
+
 	int numContacts = 0;
 
 	// contact is in our box coordinates
@@ -152,7 +153,6 @@ void Box::collideWithCircle(PhysicsObject* obj) {
 
 			// find world position
 			vec2 offset = x * localX + y * localY;
-			//vec2 corner = m_v2Position + offset;
 			vec2 distance = offset - circlePos;
 
 			
@@ -205,13 +205,15 @@ void Box::collideWithCircle(PhysicsObject* obj) {
 		// average, and convert back into world coords
 		contact = m_v2Position + (contact / numContacts);
 		resolveCollision(circle, contact, direction);
+		hasCollided = true;
 	}
 
 	delete direction;
 
+	return hasCollided;
 }
 
-void Box::collideWithBox(PhysicsObject* obj) {
+bool Box::collideWithBox(PhysicsObject* obj) {
 
 	Box* box = dynamic_cast<Box*>(obj);
 
@@ -244,7 +246,9 @@ void Box::collideWithBox(PhysicsObject* obj) {
 				if (!box->m_bIsKinematic)
 					box->m_v2Position += contactForce;
 			}
+			return true;
 		}
+		return false;
 	}
 }
 
@@ -260,13 +264,11 @@ bool checkEdgePenetration(float checkPenetration, vec2 checkNormal, float &edgeP
 
 bool Box::checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& penetration, vec2& edgeNormal) {
 
-	glm::mat4 transform = glm::eulerAngleZ(m_fRotation);
-	vec2 localX = glm::vec2(transform * glm::vec4(1, 0, 0, 0)); // Rotated X axis
-	vec2 localY = glm::vec2(transform * glm::vec4(0, 1, 0, 0)); // Rotated Y axis
+	vec2 localX = getLocalX(); // Rotated X axis
+	vec2 localY = getLocalY(); // Rotated Y axis
 
-	glm::mat4 boxTransform = glm::eulerAngleZ(box->m_fRotation);
-	vec2 boxLocalX = glm::vec2(boxTransform * glm::vec4(1, 0, 0, 0)); // Rotated X axis
-	vec2 boxLocalY = glm::vec2(boxTransform * glm::vec4(0, 1, 0, 0)); // Rotated Y axis
+	vec2 boxLocalX = box->getLocalX(); // Rotated X axis
+	vec2 boxLocalY = box->getLocalY(); // Rotated Y axis
 
 	vec2 min, max;
 
@@ -322,3 +324,10 @@ bool Box::checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& pene
 	return hasPenetrated;
 }
 
+// pt in world space
+bool Box::IsInside(glm::vec2 pt)
+{
+	pt -= m_v2Position;
+	glm::vec2 boxPt(glm::dot(pt, getLocalX()), glm::dot(pt, getLocalY()));
+	return (fabs(boxPt.x) < m_v2Size.x * 0.5f && fabs(boxPt.y) < m_v2Size.y * 0.5f);
+}

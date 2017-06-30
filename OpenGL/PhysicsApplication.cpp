@@ -5,7 +5,7 @@
 #include "Plane.h"
 #include "Circle.h"
 #include "Box.h"
-#include "Spring.h"
+//#include "Spring.h"
 
 using namespace glm;
 
@@ -42,7 +42,7 @@ bool PhysicsApplication::startup()
 
 	camera.radius = 1;
 	
-	MakeScene1();
+	resetScene();
 
 	return true;
 }
@@ -87,22 +87,75 @@ bool PhysicsApplication::update()
 	if (glfwGetKey(window, GLFW_KEY_6))
 		MakeScene6();
 
+	if (glfwGetKey(window, GLFW_KEY_G))
+		m_bShowGrid = !m_bShowGrid;
+
+	if (glfwGetKey(window, GLFW_KEY_R))
+		resetScene();
+
+	// check for mousedown
+	bool mouseDown = glfwGetMouseButton(window, 0);
+	double x0, y0;
+
+	glfwGetCursorPos(window, &x0, &y0);
+
+	mat4 view = camera.getView();
+	mat4 projection = camera.getProjection();
+
+	glm::vec3 windowCoordinates = glm::vec3(x0, y0, 0);
+	glm::vec4 viewport = glm::vec4(0.0f, 0.0f, 1280, 720);
+	glm::vec3 worldCoordinates = glm::unProject(windowCoordinates, view, projection, viewport);
+
+	m_v2MouseCurrent = vec2(worldCoordinates[0] * camera.getDistance(), worldCoordinates[1] * (-camera.getDistance()));
+
+	if (mouseDown != m_bIsMouseDown)
+	{
+		if (mouseDown)
+		{
+			m_v2MouseStart = m_v2MouseCurrent;
+		}
+		else {
+			for (auto obj : m_Objects) {
+
+				if (obj->IsInside(m_v2MouseStart)) {
+					RigidBody* rb = static_cast<RigidBody*>(obj);
+					rb->m_bIsAwake = true;
+					vec2 posn = m_v2MouseStart - rb->m_v2Position;
+					if (glm::length(posn) < 0.25f) posn = vec2();
+
+					rb->applyForce(2.0f*(m_v2MouseStart - m_v2MouseCurrent), posn);
+				}
+			}
+		}
+		m_bIsMouseDown = mouseDown;
+	}
+
+	bool objectiveComplete = false;
+	// Update objects
 	for (auto obj : m_Objects){
 
 		RigidBody* rb = dynamic_cast<RigidBody*>(obj);
 
-
-		// Gravity
-		if (rb) rb->applyForce(dt * rb->m_fMass * PhysicsObject::sm_v2Gravity);
-
+		
 		// Collision
 		for (auto candidate : m_Objects ){
 			if (candidate == obj) break; // Don't check self!
-			obj->checkCollision(candidate);
+			if (obj->checkCollision(candidate)) {
+				if ((obj->tag == 1 && candidate->tag == 2) || (obj->tag == 2 && candidate->tag == 1)) // Player hit objective
+					objectiveComplete = true;
+			}
 		}
 
 		// Motion
 		obj->update(dt);
+
+		// Gravity
+		if (rb) rb->applyForce(dt * rb->m_fMass * PhysicsObject::sm_v2Gravity);
+	}
+
+	if (objectiveComplete) {
+		m_iActiveScene++;
+		resetScene();
 	}
 
 	return (glfwWindowShouldClose(window) == false && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS);
@@ -119,21 +172,22 @@ void PhysicsApplication::draw()
 	Gizmos::clear();
 
 	Gizmos::addTransform(glm::mat4(1));
-	vec4 orange(1, 0.7f, 0.2f, 1.0f);
-	vec4 red(1, 0, 0, 1);
-	vec4 white(1);
+	vec4 orange(1, 0.7f, 0.2f, 0.5f);
+	vec4 red(1, 0, 0, 0.5f);
+	vec4 white(1, 1, 1, 0.5f);
+	vec4 grey(0.5f);
 	vec4 black(0, 0, 0, 1);
 
-
-
-	for (int i = 0; i < 21; ++i) {
-		Gizmos::add2DLine(vec2(-10 + i, 10), vec2(-10 + i, -10), i == 10 ? orange : white);
-		Gizmos::add2DLine(vec2(10, -10 + i), vec2(-10, -10 + i), i == 10 ? orange : white);
+	if (m_bIsMouseDown) {
+		Gizmos::add2DLine(m_v2MouseStart, m_v2MouseCurrent, white);
 	}
 
-	// test rendering code
-	//Gizmos::add2DCircle(vec2(0, -4), 1, 32, red);
-	//Gizmos::add2DAABBFilled(vec2(0, 1), vec2(1, 3), red);
+	if (m_bShowGrid) {
+		for (int i = 0; i < 21; ++i) {
+			Gizmos::add2DLine(vec2(-10 + i, 10), vec2(-10 + i, -10), i == 10 ? orange : grey);
+			Gizmos::add2DLine(vec2(10, -10 + i), vec2(-10, -10 + i), i == 10 ? orange : grey);
+		}
+	}
 
 	for (auto obj : m_Objects) {
 		obj->draw();
@@ -147,111 +201,289 @@ void PhysicsApplication::draw()
 	day++;
 }
 
+
+void PhysicsApplication::resetScene() {
+	switch (m_iActiveScene)
+	{
+	case 1: default: MakeScene1(); break;
+	case 2: MakeScene2(); break;
+	case 3: MakeScene3(); break;
+	case 4: MakeScene4(); break;
+	case 5: MakeScene5(); break;
+	case 6:	MakeScene6(); break;
+	}
+}
+
 void PhysicsApplication::MakeScene1() {
+	m_iActiveScene = 1;
 
 	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
 	PhysicsObject::sm_fCoeffRestitution = 1.0f;
 
 	m_Objects.clear();
 
-	RigidBody* obj = new Box(vec2(0, 0), vec2(0, 0));
-	obj->m_fAngularVelocity = 1.0f;
+	PhysicsObject* obj;
 
-	m_Objects.push_back(obj);
+	m_Objects.push_back(obj = new Box(vec2(-9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	obj = new Circle(vec2(-4, 1), vec2(1, 0), 1);
-	m_Objects.push_front(obj);
+	m_Objects.push_back(obj = new Box(vec2( 9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(7, -6), vec2(0, 0), vec2(0.05, 1.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(-1,-7), vec2(0, 0), vec2(8.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0, 7), vec2(0, 0), vec2(9.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(8, -7), vec2(0, 0), vec2(1, 0.05)));
+	obj->m_v4Color = vec4(0, 1, 0, 1);
+	((RigidBody*)obj)->m_bIsKinematic = true;
+	((RigidBody*)obj)->tag = 2; // Objective
+
+
+	m_Objects.push_back(obj = new Circle(vec2(-7.5, -5.5), vec2(), 0.5f));
+	obj->m_v4Color = vec4(0.7, 0.7, 0.7, 1);
+	((RigidBody*)obj)->m_bIsAwake = false;
+	((RigidBody*)obj)->tag = 1; // Player
+
 }
 
 void PhysicsApplication::MakeScene2() {
-	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
-	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+	m_iActiveScene = 2;
+
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, -2);
+	PhysicsObject::sm_fCoeffRestitution = 0.8f;
 
 	m_Objects.clear();
 
-	RigidBody* obj = new Box(vec2(0, 0), vec2(0, 0));
-	obj->m_fRotation = 1.57f;
+	PhysicsObject* obj;
 
-	m_Objects.push_back(obj);
+	m_Objects.push_back(obj = new Box(vec2(-9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	obj = new Circle(vec2(-4, 1), vec2(1, 0), 0.5);
-	m_Objects.push_front(obj);
+	m_Objects.push_back(obj = new Box(vec2(9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(-1, -7), vec2(0, 0), vec2(8.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(7, -6), vec2(0, 0), vec2(0.05, 1.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0, 7), vec2(0, 0), vec2(9.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(8, -7), vec2(0, 0), vec2(1, 0.05)));
+	obj->m_v4Color = vec4(0, 1, 0, 1);
+	((RigidBody*)obj)->m_bIsKinematic = true;
+	((RigidBody*)obj)->tag = 2; // Objective
+
+	m_Objects.push_back(obj = new Circle(vec2(-7.5, -5.5), vec2(), 0.5f));
+	obj->m_v4Color = vec4(0.7, 0.7, 0.7, 1);
+	((RigidBody*)obj)->m_bIsAwake = false;
+	((RigidBody*)obj)->tag = 1; // Player
+
+	m_Objects.push_back(obj = new Box(vec2(-4, 2), vec2(0, 0), vec2(0.5)));
+	obj->m_fRotation = 3.1415f / 4.0f;
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(4, 2), vec2(0, 0), vec2(0.5)));
+	obj->m_fRotation = 3.1415f / 3.0f;
+	((RigidBody*)obj)->m_bIsKinematic = true;
 }
 
 void PhysicsApplication::MakeScene3() {
-	PhysicsObject::sm_v2Gravity = glm::vec2(0, -5);
-	PhysicsObject::sm_fCoeffRestitution = 0.5f;
+	m_iActiveScene = 3;
+
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, -2);
+	PhysicsObject::sm_fCoeffRestitution = 1.1f;
 
 	m_Objects.clear();
 
-	m_Objects.push_back(new Circle(glm::vec2(0, 0), glm::vec2(0, 0), 1));
-	m_Objects.push_back(new Plane(glm::vec2(-8.5, 0), glm::vec2(1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(8.5, 0), glm::vec2(-1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
-	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
+	PhysicsObject* obj;
 
-	Box* b = new Box(vec2(3, 3), vec2(0, 0));
-	b->m_fRotation = 1.0f;
+	m_Objects.push_back(obj = new Box(vec2(-9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	m_Objects.push_back(b);
+	m_Objects.push_back(obj = new Box(vec2(9, 4.5), vec2(0, 0), vec2(0.05, 2.5)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(9, -4.5), vec2(0, 0), vec2(0.05, 2.5)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(4.5, 0), vec2(0, 0), vec2(0.05, 2.5)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0, -7), vec2(0, 0), vec2(9.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0, 7), vec2(0, 0), vec2(9.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(10, 0), vec2(0, 0), vec2(0.05, 2)));
+	obj->m_v4Color = vec4(0, 1, 0, 1);
+	((RigidBody*)obj)->m_bIsKinematic = true;
+	((RigidBody*)obj)->tag = 2; // Objective
+
+	m_Objects.push_back(obj = new Circle(vec2(-7.5, -5.5), vec2(), 0.5f));
+	obj->m_v4Color = vec4(0.7, 0.7, 0.7, 1);
+	((RigidBody*)obj)->m_bIsAwake = false;
+	((RigidBody*)obj)->tag = 1; // Player
 }
 
 
 void PhysicsApplication::MakeScene4() {
+	m_iActiveScene = 4;
 
-	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
-	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, -2);
+	PhysicsObject::sm_fCoeffRestitution = 0.8f;
 
 	m_Objects.clear();
 
+	PhysicsObject* obj;
 
-	m_Objects.push_back(new Plane(glm::vec2(-6.5, 0), glm::vec2(1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(6.5, 0), glm::vec2(-1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
-	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
+	m_Objects.push_back(obj = new Box(vec2(-9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	RigidBody* obj;
-	m_Objects.push_back(obj = new Circle(glm::vec2(0, 0), glm::vec2(0, 0), 1));
-	obj->tag = 1;
+	m_Objects.push_back(obj = new Box(vec2(9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	m_Objects.push_back(obj = new Circle(glm::vec2(-4, -6), glm::vec2(1, 1), 1));
-	obj->tag = 2;
+	m_Objects.push_back(obj = new Box(vec2(7, -6), vec2(0, 0), vec2(0.05, 1.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(-6, -6), vec2(0, 0), vec2(0.05, 1.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0.5, -5), vec2(0, 0), vec2(6.5, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(-7.5, -7), vec2(0, 0), vec2(1.5, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0, 7), vec2(0, 0), vec2(9.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(8, -7), vec2(0, 0), vec2(1, 0.05)));
+	obj->m_v4Color = vec4(0, 1, 0, 1);
+	((RigidBody*)obj)->m_bIsKinematic = true;
+	((RigidBody*)obj)->tag = 2; // Objective
+
+	m_Objects.push_back(obj = new Circle(vec2(-7.5, -5.5), vec2(), 0.5f));
+	obj->m_v4Color = vec4(0.7, 0.7, 0.7, 1);
+	((RigidBody*)obj)->m_bIsAwake = false;
+	((RigidBody*)obj)->tag = 1; // Player
+
 }
 
 void PhysicsApplication::MakeScene5() {
-	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
-	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+	m_iActiveScene = 5;
+
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, -2);
+	PhysicsObject::sm_fCoeffRestitution = 0.8f;
 
 	m_Objects.clear();
 
+	PhysicsObject* obj;
 
-	m_Objects.push_back(new Plane(glm::vec2(-6.5, 0), glm::vec2(1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(6.5, 0), glm::vec2(-1, 0)));
-	m_Objects.push_back(new Plane(glm::vec2(0, -6.5), glm::vec2(0, 1)));
-	m_Objects.push_back(new Plane(glm::vec2(0, 6.5), glm::vec2(0, -1)));
+	m_Objects.push_back(obj = new Box(vec2(-9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
+	m_Objects.push_back(obj = new Box(vec2(9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	m_Objects.push_back(new Box(glm::vec2(0, -2), glm::vec2(0, 0), vec2(1, 1)));
+	m_Objects.push_back(obj = new Box(vec2(7, -6), vec2(0, 0), vec2(0.05, 1.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	RigidBody* obj = new Box(glm::vec2(-4, -2.75), glm::vec2(2, 0), vec2(1,1));
-	obj->m_fRotation = 3.14f / 4.0f;
+	m_Objects.push_back(obj = new Box(vec2(-6, -6), vec2(0, 0), vec2(0.05, 1.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	m_Objects.push_back(obj);
+	m_Objects.push_back(obj = new Box(vec2(0.5, -5), vec2(0, 0), vec2(6.5, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(-7.5, -7), vec2(0, 0), vec2(1.5, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0, 7), vec2(0, 0), vec2(9.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(8, -7), vec2(0, 0), vec2(1, 0.05)));
+	obj->m_v4Color = vec4(0, 1, 0, 1);
+	((RigidBody*)obj)->m_bIsKinematic = true;
+	((RigidBody*)obj)->tag = 2; // Objective
+
+	m_Objects.push_back(obj = new Circle(vec2(-7.5, -5.5), vec2(), 0.5f));
+	obj->m_v4Color = vec4(0.7, 0.7, 0.7, 1);
+	((RigidBody*)obj)->m_bIsAwake = false;
+	((RigidBody*)obj)->tag = 1; // Player
+
+	m_Objects.push_back(obj = new Circle(vec2(), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
+	m_Objects.push_back(obj = new Circle(vec2(1,0), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
+	m_Objects.push_back(obj = new Circle(vec2(-1,0), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
+	m_Objects.push_back(obj = new Circle(vec2(0,1), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
+	m_Objects.push_back(obj = new Circle(vec2(0,-1), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
 
 }
 
 
 void PhysicsApplication::MakeScene6() {
+	m_iActiveScene = 6;
 
-	PhysicsObject::sm_v2Gravity = glm::vec2(0, 0);
-	PhysicsObject::sm_fCoeffRestitution = 1.0f;
+	PhysicsObject::sm_v2Gravity = glm::vec2(0, -2);
+	PhysicsObject::sm_fCoeffRestitution = 0.8f;
 
 	m_Objects.clear();
 
-	RigidBody *obj1, *obj2;
+	PhysicsObject* obj;
 
-	m_Objects.push_back(obj1 = new Circle(vec2(-2, 0.5), vec2(0, 0), 1));
-	m_Objects.push_back(obj2 = new Circle(vec2( 2, 0.5), vec2(0, 0), 1));
-	m_Objects.push_back(new Spring(obj1, vec2(0.5), obj2, vec2(0.5), 3, 1));
+	m_Objects.push_back(obj = new Box(vec2(-9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(9, 0), vec2(0, 0), vec2(0.05, 7.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(7, -6), vec2(0, 0), vec2(0.05, 1.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(-6, -6), vec2(0, 0), vec2(0.05, 1.0)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0.5, -5), vec2(0, 0), vec2(6.5, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(-7.5, -7), vec2(0, 0), vec2(1.5, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(0, 7), vec2(0, 0), vec2(9.0, 0.05)));
+	((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(obj = new Box(vec2(8, -7), vec2(0, 0), vec2(1, 0.05)));
+	obj->m_v4Color = vec4(0, 1, 0, 1);
+	((RigidBody*)obj)->m_bIsKinematic = true;
+	((RigidBody*)obj)->tag = 2; // Objective
+
+	m_Objects.push_back(obj = new Box(vec2(-7.5, -5.5), vec2(), vec2(0.5f)));
+	obj->m_v4Color = vec4(0.7, 0.7, 0.7, 1);
+	((RigidBody*)obj)->m_bIsAwake = false;
+	((RigidBody*)obj)->tag = 1; // Player
+
+	m_Objects.push_back(obj = new Circle(vec2(), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
+	m_Objects.push_back(obj = new Circle(vec2(1, 0), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
+	m_Objects.push_back(obj = new Circle(vec2(-1, 0), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
+	m_Objects.push_back(obj = new Circle(vec2(0, 1), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
+	m_Objects.push_back(obj = new Circle(vec2(0, -1), vec2(), 0.5f));
+	((RigidBody*)obj)->m_bIsAwake = false;
 
 }

@@ -17,9 +17,9 @@ public:
 	virtual void draw();
 	virtual void update(float deltaTime);
 
-	virtual void collideWithPlane(PhysicsObject*);
-	virtual void collideWithCircle(PhysicsObject*);
-	virtual void collideWithBox(PhysicsObject*);
+	virtual bool collideWithPlane(PhysicsObject*);
+	virtual bool collideWithCircle(PhysicsObject*);
+	virtual bool collideWithBox(PhysicsObject*);
 
 	// Kinematic object, ignore forces
 	virtual void applyForce(glm::vec2 force, glm::vec2 posn = glm::vec2()) {};
