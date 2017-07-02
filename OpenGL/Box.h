@@ -20,6 +20,6 @@ public:
 	
 	virtual bool checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& penetration, vec2& edgeNormal);
 
-	virtual bool IsInside(glm::vec2 pt);
+	virtual bool isInside(glm::vec2 pt);
 };
 

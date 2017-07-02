@@ -12,10 +12,10 @@
 float RigidBody::sm_fSleepSpeed = 0.00001f; // linear and angular speed
 int RigidBody::sm_iSleepDelay = 30; // Number of physics frames
 
-RigidBody::RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel, bool isAwake)
+RigidBody::RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel)
 	: PhysicsObject(objectType, posn),
 	m_v2LinearVelocity(vel),
-	m_bIsAwake(isAwake),
+	m_bIsAwake(true),
 	m_fAngularVelocity(0),
 	m_fMass(1),
 	m_fMoment(1),

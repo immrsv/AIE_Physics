@@ -325,7 +325,7 @@ bool Box::checkBoxCorners(Box* box, vec2& contact, int& numContacts, float& pene
 }
 
 // pt in world space
-bool Box::IsInside(glm::vec2 pt)
+bool Box::isInside(glm::vec2 pt)
 {
 	pt -= m_v2Position;
 	glm::vec2 boxPt(glm::dot(pt, getLocalX()), glm::dot(pt, getLocalY()));

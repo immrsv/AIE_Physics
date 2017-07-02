@@ -17,6 +17,6 @@ public:
 	virtual bool collideWithCircle(PhysicsObject*);
 	virtual bool collideWithBox(PhysicsObject*);
 
-	virtual bool IsInside(glm::vec2 pt);
+	virtual bool isInside(glm::vec2 pt);
 };
 

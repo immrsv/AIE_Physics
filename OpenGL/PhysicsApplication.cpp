@@ -117,7 +117,7 @@ bool PhysicsApplication::update()
 		else {
 			for (auto obj : m_Objects) {
 
-				if (obj->IsInside(m_v2MouseStart)) {
+				if (obj->isInside(m_v2MouseStart)) {
 					RigidBody* rb = static_cast<RigidBody*>(obj);
 					rb->m_bIsAwake = true;
 					vec2 posn = m_v2MouseStart - rb->m_v2Position;

@@ -49,5 +49,4 @@ private:
 	bool m_bShowGrid = true;
 
 	int m_iActiveScene;
-	void advanceScene();
 };

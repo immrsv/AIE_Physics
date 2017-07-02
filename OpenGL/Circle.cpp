@@ -84,7 +84,7 @@ bool Circle::collideWithBox(PhysicsObject* obj) {
 }
 
 // pt in world space
-bool Circle::IsInside(glm::vec2 pt)
+bool Circle::isInside(glm::vec2 pt)
 {
 	pt -= m_v2Position;
 

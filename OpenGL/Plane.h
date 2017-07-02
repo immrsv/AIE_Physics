@@ -21,9 +21,6 @@ public:
 	virtual bool collideWithCircle(PhysicsObject*);
 	virtual bool collideWithBox(PhysicsObject*);
 
-	// Kinematic object, ignore forces
-	virtual void applyForce(glm::vec2 force, glm::vec2 posn = glm::vec2()) {};
-
 private:
 	glm::vec2 m_v2Parallel;
 };

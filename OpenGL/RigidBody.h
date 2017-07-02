@@ -7,7 +7,7 @@
 class RigidBody : public PhysicsObject
 {
 public:
-	RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel, bool isAwake = true);
+	RigidBody(PhysicsObjectType objectType, glm::vec2 posn, glm::vec2 vel);
 	~RigidBody();
 
 	glm::vec2 m_v2LinearVelocity;
@@ -33,10 +33,7 @@ public:
 
 
 
-private:
-	bool m_bIsRotationDirty;
-	glm::mat4 m_m4Rotation;
-
+protected:
 	static float sm_fSleepSpeed;
 	static int sm_iSleepDelay;
 

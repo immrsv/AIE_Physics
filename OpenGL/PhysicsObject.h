@@ -45,9 +45,9 @@ public:
 	virtual bool collideWithCircle(PhysicsObject*) = 0;
 	virtual bool collideWithBox(PhysicsObject*) = 0;
 
-	virtual bool IsInside(glm::vec2 pt) { return false; }
+	virtual bool isInside(glm::vec2 pt) { return false; }
 
-private:
+protected:
 	bool m_bIsRotationDirty = true;
 	glm::mat4 cm_m4Rotation;
 	vec2 cm_v2LocalX; // Calculated Member
