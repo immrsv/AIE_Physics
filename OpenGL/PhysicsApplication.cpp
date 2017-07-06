@@ -5,7 +5,7 @@
 #include "Plane.h"
 #include "Circle.h"
 #include "Box.h"
-//#include "Spring.h"
+#include "Spring.h"
 
 using namespace glm;
 
@@ -260,7 +260,7 @@ void PhysicsApplication::MakeScene2() {
 
 	m_Objects.clear();
 
-	PhysicsObject* obj;
+	PhysicsObject *obj, *top;
 
 	m_Objects.push_back(obj = new Box(vec2(-9, 0), vec2(0, 0), vec2(0.05, 7.0)));
 	((RigidBody*)obj)->m_bIsKinematic = true;
@@ -274,7 +274,7 @@ void PhysicsApplication::MakeScene2() {
 	m_Objects.push_back(obj = new Box(vec2(7, -6), vec2(0, 0), vec2(0.05, 1.0)));
 	((RigidBody*)obj)->m_bIsKinematic = true;
 
-	m_Objects.push_back(obj = new Box(vec2(0, 7), vec2(0, 0), vec2(9.0, 0.05)));
+	m_Objects.push_back(top = obj = new Box(vec2(0, 7), vec2(0, 0), vec2(9.0, 0.05)));
 	((RigidBody*)obj)->m_bIsKinematic = true;
 
 	m_Objects.push_back(obj = new Box(vec2(8, -7), vec2(0, 0), vec2(1, 0.05)));
@@ -287,13 +287,18 @@ void PhysicsApplication::MakeScene2() {
 	((RigidBody*)obj)->m_bIsAwake = false;
 	((RigidBody*)obj)->tag = 1; // Player
 
+
 	m_Objects.push_back(obj = new Box(vec2(-4, 2), vec2(0, 0), vec2(0.5)));
 	obj->m_fRotation = 3.1415f / 4.0f;
-	((RigidBody*)obj)->m_bIsKinematic = true;
+	//((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(new Spring((RigidBody*)top, vec2(-4,0), (RigidBody*)obj, vec2(), 5.0f, 2.0f, 0.5f)); // Spring
 
 	m_Objects.push_back(obj = new Box(vec2(4, 2), vec2(0, 0), vec2(0.5)));
 	obj->m_fRotation = 3.1415f / 3.0f;
-	((RigidBody*)obj)->m_bIsKinematic = true;
+	//((RigidBody*)obj)->m_bIsKinematic = true;
+
+	m_Objects.push_back(new Spring((RigidBody*)top, vec2( 4,0), (RigidBody*)obj, vec2(), 5.0f, 2.0f, 0.5f)); // Spring
 }
 
 void PhysicsApplication::MakeScene3() {
@@ -387,7 +392,7 @@ void PhysicsApplication::MakeScene5() {
 
 	m_Objects.clear();
 
-	PhysicsObject* obj;
+	PhysicsObject *obj, *circ1, *circ2, *circ3, *circ4;
 
 	m_Objects.push_back(obj = new Box(vec2(-9, 0), vec2(0, 0), vec2(0.05, 7.0)));
 	((RigidBody*)obj)->m_bIsKinematic = true;
@@ -422,15 +427,22 @@ void PhysicsApplication::MakeScene5() {
 
 	m_Objects.push_back(obj = new Circle(vec2(), vec2(), 0.5f));
 	((RigidBody*)obj)->m_bIsAwake = false;
-	m_Objects.push_back(obj = new Circle(vec2(1,0), vec2(), 0.5f));
+	m_Objects.push_back(circ1 = obj = new Circle(vec2( 1, 0), vec2(), 0.5f));
 	((RigidBody*)obj)->m_bIsAwake = false;
-	m_Objects.push_back(obj = new Circle(vec2(-1,0), vec2(), 0.5f));
+	m_Objects.push_back(circ2 = obj = new Circle(vec2( 0, 1), vec2(), 0.5f));
 	((RigidBody*)obj)->m_bIsAwake = false;
-	m_Objects.push_back(obj = new Circle(vec2(0,1), vec2(), 0.5f));
+	m_Objects.push_back(circ3 = obj = new Circle(vec2(-1,0), vec2(), 0.5f));
 	((RigidBody*)obj)->m_bIsAwake = false;
-	m_Objects.push_back(obj = new Circle(vec2(0,-1), vec2(), 0.5f));
+	m_Objects.push_back(circ4 = obj = new Circle(vec2(0,-1), vec2(), 0.5f));
 	((RigidBody*)obj)->m_bIsAwake = false;
 
+	m_Objects.push_back(new Spring((RigidBody*)circ1, vec2(), (RigidBody*)circ2, vec2(), 0.7f, 5.0f, 0.5f));
+	m_Objects.push_back(new Spring((RigidBody*)circ2, vec2(), (RigidBody*)circ3, vec2(), 0.7f, 5.0f, 0.5f));
+	m_Objects.push_back(new Spring((RigidBody*)circ3, vec2(), (RigidBody*)circ4, vec2(), 0.7f, 5.0f, 0.5f));
+	m_Objects.push_back(new Spring((RigidBody*)circ4, vec2(), (RigidBody*)circ1, vec2(), 0.7f, 5.0f, 0.5f));
+
+	m_Objects.push_back(new Spring((RigidBody*)circ1, vec2(), (RigidBody*)circ3, vec2(), 2.0f, 2.0f, 0.5f));
+	m_Objects.push_back(new Spring((RigidBody*)circ2, vec2(), (RigidBody*)circ4, vec2(), 2.0f, 2.0f, 0.5f));
 }
 
 

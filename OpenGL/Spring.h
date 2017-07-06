@@ -6,7 +6,7 @@
 class Spring : public PhysicsObject
 {
 public:
-	Spring(RigidBody*, vec2, RigidBody*, vec2, float, float, float = 0.1f);
+	Spring(RigidBody* body1, vec2 contact1, RigidBody* body2, vec2 contact2, float length, float strength, float damping = 0.1f);
 	~Spring();
 
 	RigidBody* m_pBody1;
